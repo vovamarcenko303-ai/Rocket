@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Rocket Games</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; overflow-x: hidden; user-select: none; padding-bottom: 70px; }
+
+  /* === ШАПКА === */
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #111; border-bottom: 1px solid #222; }
+  .user { display: flex; align-items: center; gap: 8px; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #c8ff00, #7cb300); display: flex; justify-content: center; align-items: center; font-size: 20px; }
+  .user-info { display: flex; flex-direction: column; }
+  .user-name { font-size: 14px; font-weight: 700; }
+  .user-id { font-size: 10px; color: #666; }
+  .balance { display: flex; align-items: center; gap: 4px; font-size: 15px; font-weight: 700; color: #ffd700; }
+  .plus-btn { width: 36px; height: 36px; border-radius: 50%; background: #c8ff00; border: none; color: #0a0a0a; font-size: 24px; font-weight: 700; cursor: pointer; margin-left: 8px; }
+
+  /* === РЕЖИМИ === */
+  .mode-section { display: none; padding: 14px; }
+  .mode-section.active { display: block; }
+
+  /* === МІНИ === */
+  .field-size { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+  .size-btn { flex: 1; max-width: 100px; padding: 10px 0; background: #1a1a1a; border: 1px solid #2a2a2a; color: #666; font-size: 14px; font-weight: 700; border-radius: 10px; cursor: pointer; }
+  .size-btn.active { background: #1a2a00; border-color: #c8ff00; color: #c8ff00; }
+
+  .grid { display: grid; gap: 8px; margin-bottom: 14px; }
+  .cell { aspect-ratio: 1; background: linear-gradient(145deg, #1e2a00, #141a00); border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; border: 1px solid #2a3a00; }
+  .cell:active { transform: scale(0.95); }
+  .cell.revealed { background: linear-gradient(145deg, #2a4a00, #1a3000); border-color: #c8ff00; }
+  .cell.mine { background: linear-gradient(145deg, #4a1a1a, #2a0a0a); border-color: #ff4444; }
+
+  /* === КРАШ === */
+  .crash-area { text-align: center; padding: 20px 0; }
+  .crash-rocket { font-size: 80px; transition: transform 0.2s linear; }
+  .crash-multiplier { font-size: 56px; font-weight: 900; color: #c8ff00; margin: 20px 0; }
+
+  /* === АПГРЕЙД === */
+  .upgrade-item { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .upgrade-info { flex: 1; }
+  .upgrade-name { font-size: 14px; font-weight: 700; }
+  .upgrade-level { font-size: 11px; color: #666; margin-top: 2px; }
+  .upgrade-btn { background: #c8ff00; color: #0a0a0a; border: none; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+  /* === СЛАЙДЕР === */
+  .slider-section { margin-bottom: 14px; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 8px; }
+  .slider-value { color: #c8ff00; font-weight: 700; }
+  .slider { width: 100%; -webkit-appearance: none; height: 6px; background: #222; border-radius: 3px; outline: none; }
+  .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; background: #c8ff00; border-radius: 50%; }
+
+  /* === СТАВКА === */
+  .bet-section { display: flex; gap: 8px; margin-bottom: 14px; }
+  .bet-input { flex: 1; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 14px; color: #fff; font-size: 16px; font-weight: 700; text-align: center; }
+  .bet-btn { width: 50px; background: #1a1a1a; border: 1px solid #2a2a2a; color: #fff; font-size: 20px; font-weight: 700; border-radius: 12px; }
+
+  .start-btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #c8ff00, #7cb300); border: none; border-radius: 14px; color: #0a0a0a; font-size: 16px; font-weight: 700; }
+
+  /* === ПРОФІЛЬ === */
+  .profile { text-align: center; padding: 20px 0; }
+  .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #c8ff00, #7cb300); margin: 0 auto 14px; display: flex; justify-content: center; align-items: center; font-size: 36px; }
+  .profile-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .profile-id { font-size: 12px; color: #666; margin-bottom: 20px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stat { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 14px 8px; }
+  .stat-value { font-size: 20px; font-weight: 700; color: #c8ff00; }
+  .stat-label { font-size: 10px; color: #666; margin-top: 4px; }
+
+  /* === НИЖНЕ МЕНЮ === */
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-around; background: #111; border-top: 1px solid #222; padding: 8px 0 12px; }
+  .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: none; color: #666; font-size: 10px; }
+  .nav-btn.active { color: #c8ff00; }
+  .nav-icon { font-size: 22px; }
+
+  /* === РЕЗУЛЬТАТ === */
+  .result-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 100; }
+  .result-overlay.active { display: flex; }
+  .result-box { background: #1a1a1a; border-radius: 20px; padding: 30px; text-align: center; max-width: 300px; border: 1px solid #2a2a2a; }
+  .result-emoji { font-size: 60px; margin-bottom: 14px; }
+  .result-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .result-title.win { color: #c8ff00; }
+  .result-title.lose { color: #ff4444; }
+  .result-text { font-size: 14px; color: #888; margin-bottom: 20px; }
+  .result-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #c8ff00, #7cb300); border: none; border-radius: 12px; color: #0a0a0a; font-size: 16px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="user">
+    <div class="avatar" id="hdr-avatar">🐱</div>
+    <div class="user-info">
+      <div class="user-name" id="hdr-name">Гравець</div>
+      <div class="user-id" id="hdr-id">ID: 0</div>
+    </div>
+  </div>
+  <div class="balance">⭐ <span id="balance">100</span></div>
+  <button class="plus-btn" onclick="topUp()">+</button>
+</div>
+
+<!-- МІНИ -->
+<div class="mode-section active" id="mode-mines">
+  <div class="field-size">
+    <button class="size-btn" onclick="setSize(3, event)">3×3</button>
+    <button class="size-btn active" onclick="setSize(5, event)">5×5</button>
+    <button class="size-btn" onclick="setSize(10, event)">10×10</button>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="slider-section">
+    <div class="slider-label">
+      <span>💣 Мін: <span class="slider-value" id="mines-val">3</span></span>
+      <span>📈 Шанс: <span class="slider-value" id="chance-val">100%</span></span>
+    </div>
+    <input type="range" class="slider" id="mines-slider" min="1" max="24" value="3">
+  </div>
+  <div class="bet-section">
+    <button class="bet-btn" onclick="changeBet(-10)">−</button>
+    <input class="bet-input" id="bet-input" type="number" value="10" min="1">
+    <button class="bet-btn" onclick="changeBet(10)">+</button>
+  </div>
+  <button class="start-btn" id="start-btn" onclick="startMines()">Начать игру</button>
+</div>
+
+<!-- КРАШ -->
+<div class="mode-section" id="mode-crash">
+  <div class="crash-area">
+    <div class="crash-rocket" id="crash-rocket">🚀</div>
+    <div class="crash-multiplier" id="crash-mult">1.00x</div>
+    <button class="start-btn" id="crash-btn" onclick="crashAction()">Сделать ставку</button>
+  </div>
+</div>
+
+<!-- АПГРЕЙД -->
+<div class="mode-section" id="mode-upgrade">
+  <div class="upgrade-item">
+    <div class="upgrade-info">
+      <div class="upgrade-name">💎 Множник Мін</div>
+      <div class="upgrade-level">Рівень: <span id="upg-mines">1</span></div>
+    </div>
+    <button class="upgrade-btn" onclick="buyUpgrade('mines')">50⭐</button>
+  </div>
+  <div class="upgrade-item">
+    <div class="upgrade-info">
+      <div class="upgrade-name">🚀 Шанс Краш</div>
+      <div class="upgrade-level">Рівень: <span id="upg-crash">1</span></div>
+    </div>
+    <button class="upgrade-btn" onclick="buyUpgrade('crash')">100⭐</button>
+  </div>
+</div>
+
+<!-- ПРОФІЛЬ -->
+<div class="mode-section" id="mode-profile">
+  <div class="profile">
+    <div class="profile-avatar" id="prof-avatar">🐱</div>
+    <div class="profile-name" id="prof-name">Гравець</div>
+    <div class="profile-id" id="prof-id">ID: 0</div>
+    <div class="stats">
+      <div class="stat"><div class="stat-value" id="stat-wins">0</div><div class="stat-label">Перемог</div></div>
+      <div class="stat"><div class="stat-value" id="stat-losses">0</div><div class="stat-label">Поразок</div></div>
+      <div class="stat"><div class="stat-value" id="stat-games">0</div><div class="stat-label">Ігор</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- РЕЗУЛЬТАТ -->
+<div class="result-overlay" id="result">
+  <div class="result-box">
+    <div class="result-emoji" id="result-emoji">💎</div>
+    <div class="result-title" id="result-title">Перемога!</div>
+    <div class="result-text" id="result-text">+100 ⭐</div>
+    <button class="result-btn" onclick="closeResult()">Продовжити</button>
+  </div>
+</div>
+
+<!-- НИЖНЕ МЕНЮ -->
+<div class="bottom-nav">
+  <button class="nav-btn active" onclick="switchMode('mines')">
+    <span class="nav-icon">💣</span><span>Міни</span>
+  </button>
+  <button class="nav-btn" onclick="switchMode('crash')">
+    <span class="nav-icon">🚀</span><span>Краш</span>
+  </button>
+  <button class="nav-btn" onclick="switchMode('upgrade')">
+    <span class="nav-icon">⬆️</span><span>Апгрейд</span>
+  </button>
+  <button class="nav-btn" onclick="switchMode('profile')">
+    <span class="nav-icon">👤</span><span>Профіль</span>
+  </button>
+</div>
+
+<script>
+// === TELEGRAM ===
+const tg = window.Telegram?.WebApp;
+let userId = 0;
+let userName = 'Гравець';
+
+if (tg) {
+  tg.ready();
+  tg.expand();
+  const user = tg.initDataUnsafe?.user;
+  if (user) {
+    userId = user.id;
+    userName = user.first_name || 'Гравець';
+  }
+}
+
+document.getElementById('hdr-name').textContent = userName;
+document.getElementById('hdr-id').textContent = 'ID: ' + userId;
+document.getElementById('prof-name').textContent = userName;
+document.getElementById('prof-id').textContent = 'ID: ' + userId;
+
+// === СТАН (localStorage) ===
+const STORAGE_KEY = 'rocket_game_' + userId;
+
+let state = {
+  balance: 100,
+  wins: 0,
+  losses: 0,
+  games: 0,
+  upgradeMines: 1,
+  upgradeCrash: 1
+};
+
+function loadState() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try { state = JSON.parse(saved); } catch(e) {}
+  }
+  updateUI();
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function updateUI() {
+  document.getElementById('balance').textContent = state.balance;
+  document.getElementById('stat-wins').textContent = state.wins;
+  document.getElementById('stat-losses').textContent = state.losses;
+  document.getElementById('stat-games').textContent = state.games;
+  document.getElementById('upg-mines').textContent = state.upgradeMines;
+  document.getElementById('upg-crash').textContent = state.upgradeCrash;
+}
+
+// === ПОПОВНЕННЯ ===
+function topUp() {
+  state.balance += 100;
+  saveState();
+  updateUI();
+  alert('✅ +100 ⭐ (тестовий режим)');
+}
+
+// === ПЕРЕМИКАННЯ РЕЖИМІВ ===
+function switchMode(mode) {
+  document.querySelectorAll('.mode-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('mode-' + mode).classList.add('active');
+  event.target.closest('.nav-btn').classList.add('active');
+}
+
+// === МІНИ ===
+let currentSize = 5;
+let currentMines = 3;
+let currentBet = 10;
+let gameActive = false;
+let mineIndices = [];
+let revealedIndices = [];
+let multiplier = 1.0;
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  grid.style.gridTemplateColumns = `repeat(${currentSize}, 1fr)`;
+  grid.innerHTML = '';
+  const total = currentSize * currentSize;
+  for (let i = 0; i < total; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    if (revealedIndices.includes(i)) {
+      if (mineIndices.includes(i)) {
+        cell.classList.add('mine');
+        cell.textContent = '💣';
+      } else {
+        cell.classList.add('revealed');
+        cell.textContent = '💎';
+      }
+    } else if (!gameActive && mineIndices.includes(i) && revealedIndices.length > 0) {
+      cell.classList.add('mine');
+      cell.textContent = '💣';
+    } else {
+      cell.textContent = '⚡';
+      cell.onclick = () => openCell(i);
+    }
+    grid.appendChild(cell);
+  }
+}
+
+function setSize(size, event) {
+  if (gameActive) return;
+  currentSize = size;
+  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+  if (event) event.target.classList.add('active');
+  const maxMines = size * size - 1;
+  document.getElementById('mines-slider').max = maxMines;
+  if (currentMines > maxMines) currentMines = maxMines;
+  document.getElementById('mines-slider').value = currentMines;
+  document.getElementById('mines-val').textContent = currentMines;
+  updateChance();
+  revealedIndices = [];
+  mineIndices = [];
+  renderGrid();
+}
+
+document.getElementById('mines-slider').addEventListener('input', (e) => {
+  currentMines = parseInt(e.target.value);
+  document.getElementById('mines-val').textContent = currentMines;
+  updateChance();
+});
+
+function updateChance() {
+  const total = currentSize * currentSize;
+  const safe = total - currentMines;
+  document.getElementById('chance-val').textContent = ((safe / total) * 100).toFixed(0) + '%';
+}
+
+function changeBet(delta) {
+  currentBet = Math.max(1, currentBet + delta);
+  document.getElementById('bet-input').value = currentBet;
+}
+
+document.getElementById('bet-input').addEventListener('input', (e) => {
+  currentBet = Math.max(1, parseInt(e.target.value) || 1);
+});
+
+function startMines() {
+  if (currentBet > state.balance) { alert('Недостаточно ⭐'); return; }
+  gameActive = true;
+  revealedIndices = [];
+  multiplier = 1.0;
+  const total = currentSize * currentSize;
+  mineIndices = [];
+  while (mineIndices.length < currentMines) {
+    const idx = Math.floor(Math.random() * total);
+    if (!mineIndices.includes(idx)) mineIndices.push(idx);
+  }
+  state.balance -= currentBet;
+  saveState();
+  updateUI();
+  document.getElementById('start-btn').textContent = '💰 Забрати (x1.00)';
+  document.getElementById('start-btn').onclick = cashoutMines;
+  renderGrid();
+}
+
+function openCell(index) {
+  if (!gameActive) return;
+  if (revealedIndices.includes(index)) return;
+
+  if (mineIndices.includes(index)) {
+    revealedIndices.push(index);
+    gameActive = false;
+    state.losses++;
+    state.games++;
+    saveState();
+    updateUI();
+    renderGrid();
+    showResult('💥', 'Програв!', `Втрачено ${currentBet} ⭐`, 'lose');
+    resetMinesBtn();
+    return;
+  }
+
+  revealedIndices.push(index);
+  const total = currentSize * currentSize;
+  const safe = total - currentMines;
+  const boost = 1 + (state.upgradeMines - 1) * 0.05;
+  multiplier = Math.round(Math.pow(total / safe, revealedIndices.length) * boost * 100) / 100;
+  document.getElementById('start-btn').textContent = `💰 Забрати (x${multiplier})`;
+  renderGrid();
+}
+
+function cashoutMines() {
+  if (!gameActive) return;
+  const win = Math.floor(currentBet * multiplier);
+  state.balance += win;
+  state.wins++;
+  state.games++;
+  saveState();
+  updateUI();
+  gameActive = false;
+  renderGrid();
+  showResult('💎', 'Перемога!', `+${win} ⭐ (x${multiplier})`, 'win');
+  resetMinesBtn();
+}
+
+function resetMinesBtn() {
+  const btn = document.getElementById('start-btn');
+  btn.textContent = 'Начать игру';
+  btn.onclick = startMines;
+}
+
+// === КРАШ ===
+let crashActive = false;
+let crashMult = 1.0;
+let crashInterval = null;
+let crashBet = 10;
+let crashCrashPoint = 0;
+
+function crashAction() {
+  if (crashActive) {
+    cashoutCrash();
+  } else {
+    startCrash();
+  }
+}
+
+function startCrash() {
+  crashBet = parseInt(document.getElementById('bet-input').value) || 10;
+  if (crashBet > state.balance) { alert('Недостаточно ⭐'); return; }
+
+  state.balance -= crashBet;
+  saveState();
+  updateUI();
+
+  crashActive = true;
+  crashMult = 1.0;
+  const bonus = (state.upgradeCrash - 1) * 0.5;
+  crashCrashPoint = 1.1 + Math.random() * (10 + bonus);
+
+  const btn = document.getElementById('crash-btn');
+  btn.textContent = '💰 Забрати';
+  btn.onclick = cashoutCrash;
+
+  crashInterval = setInterval(() => {
+    crashMult += 0.03 + Math.random() * 0.05;
+    document.getElementById('crash-mult').textContent = crashMult.toFixed(2) + 'x';
+    document.getElementById('crash-rocket').style.transform = `translateY(${-Math.min(crashMult * 10, 150)}px) scale(${1 + crashMult * 0.05})`;
+
+    if (crashMult >= crashCrashPoint) {
+      clearInterval(crashInterval);
+      crashActive = false;
+      state.losses++;
+      state.games++;
+      saveState();
+      updateUI();
+      document.getElementById('crash-mult').textContent = '💥 КРАХ!';
+      document.getElementById('crash-mult').style.color = '#ff4444';
+      showResult('💥', 'Крах!', `Втрачено ${crashBet} ⭐`, 'lose');
+      setTimeout(resetCrash, 2000);
+    }
+  }, 100);
+}
+
+function cashoutCrash() {
+  if (!crashActive) return;
+  clearInterval(crashInterval);
+  crashActive = false;
+  const win = Math.floor(crashBet * crashMult);
+  state.balance += win;
+  state.wins++;
+  state.games++;
+  saveState();
+  updateUI();
+  showResult('🚀', 'Забрано!', `+${win} ⭐ (x${crashMult.toFixed(2)})`, 'win');
+  setTimeout(resetCrash, 2000);
+}
+
+function resetCrash() {
+  document.getElementById('crash-mult').textContent = '1.00x';
+  document.getElementById('crash-mult').style.color = '#c8ff00';
+  document.getElementById('crash-rocket').style.transform = 'translateY(0) scale(1)';
+  const btn = document.getElementById('crash-btn');
+  btn.textContent = 'Сделать ставку';
+  btn.onclick = crashAction;
+}
+
+// === АПГРЕЙД ===
+function buyUpgrade(type) {
+  const prices = { mines: 50, crash: 100 };
+  const price = prices[type] * (type === 'mines' ? state.upgradeMines : state.upgradeCrash);
+
+  if (state.balance < price) { alert(`Треба ${price} ⭐`); return; }
+
+  state.balance -= price;
+  if (type === 'mines') state.upgradeMines++;
+  if (type === 'crash') state.upgradeCrash++;
+  saveState();
+  updateUI();
+  alert('✅ Апгрейд куплено!');
+}
+
+// === РЕЗУЛЬТАТ ===
+function showResult(emoji, title, text, type) {
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-title').className = 'result-title ' + type;
+  document.getElementById('result-text').textContent = text;
+  document.getElementById('result').classList.add('active');
+}
+
+function closeResult() {
+  document.getElementById('result').classList.remove('active');
+}
+
+// === INIT ===
+loadState();
+renderGrid();
+updateChance();
+</script>
+
+</body>
+</html>
